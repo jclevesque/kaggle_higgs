@@ -16,7 +16,7 @@ def main(test=False):
     time_start = time.time()
 
     # Load training data
-    data_train = np.loadtxt('debug.csv', delimiter=',', skiprows=1, converters={32: lambda x:int(x=='s'.encode('utf-8')) } )
+    data_train = np.loadtxt('training.csv', delimiter=',', skiprows=1, converters={32: lambda x:int(x=='s'.encode('utf-8')) } )
 
     # Pick a random seed for reproducible results. Choose wisely!
     np.random.seed(42)
@@ -41,7 +41,7 @@ def main(test=False):
         preprocessing=hpsklearn.components.any_preprocessing('pp'),
         classifier=hpsklearn.components.any_classifier('clf'),
         algo=hyperopt.tpe.suggest,
-        trial_timeout=15.0, # seconds
+        trial_timeout=30.0, # seconds
         max_evals=15,
     )
 
@@ -68,15 +68,16 @@ def main(test=False):
     print('Prediction accuracy in generalization is %.1f%%' % acc_in_percent)
 
     # Get the probaility output from the trained method, using the 10% for testing
-    prob_predict_train = np.mean(estimator.predict(X_train) == Y_train)
-    prob_predict_valid = np.mean(estimator.predict(X_valid) == Y_valid)
+    #prob_predict_train = np.mean(estimator.predict(X_train) == Y_train)
+    #prob_predict_valid = np.mean(estimator.predict(X_valid) == Y_valid)
 
     # Experience shows me that choosing the top 15% as signal gives a good AMS score.
     # This can be optimized though!
-    pcut = np.percentile(prob_predict_train, 0.15)
+    #pcut = np.percentile(prob_predict_train, 0.15)
 
     # This are the final signal and background predictions
-    Yhat_valid = prob_predict_valid > pcut
+    #Yhat_valid = prob_predict_valid > pcut
+    Yhat_valid = estimator.predict(X_valid)
 
     # To calculate the AMS data, first get the true positives and true negatives
     # Scale the weights according to the r cutoff.
@@ -105,7 +106,7 @@ def main(test=False):
         df = pd.DataFrame({"EventId": ids, "RankOrder": r, "Class": p})
         df.to_csv("predictions.csv", index=False, cols=["EventId", "RankOrder", "Class"])
 
-    return {'loss': -AMSScore(s_valid, b_valid), 'status':hyperopt.STATUS_OK,
+    return {'loss': -AMSScore(s_valid, b_valid), 'status': hyperopt.STATUS_OK,
         'eval_time': time.time() - time_start}
 
 if __name__ == '__main__':
